@@ -1,0 +1,7 @@
+port = 8000
+
+[database]
+host = "localhost"
+username = "postgres"
+password = "password"
+db_name = "newsletter"
