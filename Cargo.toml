@@ -7,5 +7,9 @@ edition = "2021"
 
 [dependencies]
 axum = "0.6.1"
+futures = { version = "0.3.25", default-features = false, features = ["std"] }
 hyper = { version = "0.14.23", features = ["server"] }
 tokio = { version = "1.23.0", features = ["macros", "rt-multi-thread"] }
+
+[dev-dependencies]
+hyper = { version = "0.14.23", features = ["client"] }
