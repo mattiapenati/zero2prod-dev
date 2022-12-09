@@ -31,11 +31,14 @@ impl Settings {
 
 impl DatabaseSettings {
     pub fn connect_options(&self) -> PgConnectOptions {
+        self.connect_options_without_db().database(&self.db_name)
+    }
+
+    pub fn connect_options_without_db(&self) -> PgConnectOptions {
         PgConnectOptions::new()
             .host(&self.host)
             .port(self.port)
             .username(&self.username)
             .password(&self.password)
-            .database(&self.db_name)
     }
 }

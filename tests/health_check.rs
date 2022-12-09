@@ -1,16 +1,17 @@
 use std::net::TcpListener;
 
 use hyper::{header, Request};
-use sqlx::{Connection, PgConnection};
-use zero2prod::settings::Settings;
+use sqlx::{Connection, Executor, PgConnection, PgPool};
+use uuid::Uuid;
+use zero2prod::settings::DatabaseSettings;
 
 #[tokio::test]
 async fn health_check_works() {
-    let address = spawn_app();
+    let app = spawn_app().await;
     let client = hyper::Client::new();
 
     let response = client
-        .get(format!("{}/health_check", address).parse().unwrap())
+        .get(format!("{}/health_check", app.address).parse().unwrap())
         .await
         .expect("failed to execute request");
 
@@ -20,15 +21,11 @@ async fn health_check_works() {
 
 #[tokio::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
-    let address = spawn_app();
-    let settings = Settings::load().expect("failed to load configuration");
-    let mut connection = PgConnection::connect_with(&settings.database.connect_options())
-        .await
-        .expect("failed to connect to database");
+    let app = spawn_app().await;
     let client = hyper::Client::new();
 
     let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
-    let request = Request::post(format!("{}/subscriptions", address))
+    let request = Request::post(format!("{}/subscriptions", app.address))
         .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
         .body(body.into())
         .unwrap();
@@ -40,17 +37,17 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
     assert_eq!(200, response.status());
 
     let saved = sqlx::query!("SELECT email, name FROM subscriptions")
-        .fetch_one(&mut connection)
+        .fetch_one(&app.db_pool)
         .await
         .expect("failed to fetch saved subscription");
 
-    assert_eq!("ursula_le_quin@gmail.com", saved.email);
+    assert_eq!("ursula_le_guin@gmail.com", saved.email);
     assert_eq!("le guin", saved.name);
 }
 
 #[tokio::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {
-    let address = spawn_app();
+    let app = spawn_app().await;
     let client = hyper::Client::new();
     let test_cases = vec![
         ("name=le%20guin", "missing the email"),
@@ -59,7 +56,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     ];
 
     for (invalid_body, error_message) in test_cases {
-        let request = Request::post(format!("{}/subscriptions", address))
+        let request = Request::post(format!("{}/subscriptions", app.address))
             .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
             .body(invalid_body.into())
             .unwrap();
@@ -77,10 +74,43 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     }
 }
 
-fn spawn_app() -> String {
+async fn spawn_app() -> TestApp {
     let listener = TcpListener::bind("127.0.0.1:0").expect("failed to bind random port");
     let port = listener.local_addr().unwrap().port();
-    let server = zero2prod::app::run(listener).expect("failed to bind address");
+    let address = format!("http://127.0.0.1:{}", port);
+
+    let mut settings = zero2prod::Settings::load().expect("failed to load configuration");
+    settings.database.db_name = Uuid::new_v4().to_string();
+
+    let db_pool = configure_database(&settings.database).await;
+
+    let server = zero2prod::app::run(listener, db_pool.clone()).expect("failed to bind address");
     let _ = tokio::spawn(server);
-    format!("http://127.0.0.1:{}", port)
+
+    TestApp { address, db_pool }
+}
+
+async fn configure_database(config: &DatabaseSettings) -> PgPool {
+    let mut connection = PgConnection::connect_with(&config.connect_options_without_db())
+        .await
+        .expect("failed to connect to database");
+    connection
+        .execute(format!(r#"CREATE DATABASE "{}";"#, config.db_name).as_str())
+        .await
+        .expect("failed to create database");
+
+    let db_pool = PgPool::connect_with(config.connect_options())
+        .await
+        .expect("failed to connect to database");
+    sqlx::migrate!("./migrations")
+        .run(&db_pool)
+        .await
+        .expect("failed to migrate the database");
+
+    db_pool
+}
+
+struct TestApp {
+    address: String,
+    db_pool: PgPool,
 }
