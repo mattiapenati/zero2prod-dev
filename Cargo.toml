@@ -7,12 +7,15 @@ edition = "2021"
 
 [dependencies]
 axum = "0.6.1"
+axum-macros = "0.3.0"
+chrono = { version = "0.4.23", default-features = false, features = ["serde"] }
 config = { version = "0.13.3", default-features = false, features = ["toml"] }
 futures = { version = "0.3.25", default-features = false, features = ["std"] }
 hyper = { version = "0.14.23", features = ["server"] }
 serde = { version = "1.0.149", features = ["derive"] }
 sqlx = { version = "0.6.2", features = ["postgres", "uuid", "chrono", "runtime-tokio-rustls"] }
 tokio = { version = "1.23.0", features = ["macros", "rt-multi-thread"] }
+uuid = { version = "1.2.2", features = ["v4"] }
 
 [dev-dependencies]
 hyper = { version = "0.14.23", features = ["client"] }
