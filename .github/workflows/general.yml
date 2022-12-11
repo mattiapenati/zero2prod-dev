@@ -41,6 +41,8 @@ jobs:
           --locked
           --no-default-features
           --features rustls,postgres
+      - name: install protoc
+        uses: arduino/setup-protoc@v1
       - name: migrate database
         run: sqlx database reset -y
       - name: running test
@@ -89,6 +91,8 @@ jobs:
           --locked
           --no-default-features
           --features rustls,postgres
+      - name: install protoc
+        uses: arduino/setup-protoc@v1
       - name: migrate database
         run: sqlx database reset -y
       - name: check if code is formatted correctly

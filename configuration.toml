@@ -1,5 +1,9 @@
 port = 8000
 
+[log]
+level = "trace"
+endpoint = "http://localhost:4317"
+
 [database]
 host = "localhost"
 username = "postgres"

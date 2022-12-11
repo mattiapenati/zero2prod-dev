@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+ScriptDir=$(cd `dirname $0` && pwd -P)
+Command=${1:-help}
+
+case $Command in
+    start)
+        cd ${ScriptDir}
+        docker compose -f docker-compose.test.yaml -p zero2prod up -d
+        ;;
+    stop)
+        cd ${ScriptDir}
+        docker compose -f docker-compose.test.yaml -p zero2prod down
+        ;;
+    restart)
+        cd ${ScriptDir}
+        docker compose -f docker-compose.test.yaml -p zero2prod down
+        docker compose -f docker-compose.test.yaml -p zero2prod up -d
+        ;;
+    status)
+        cd ${ScriptDir}
+        docker compose -f docker-compose.test.yaml -p zero2prod ps
+        ;;
+    *)
+        printf "usage: $0 start|stop|restart|status\n" >&2
+        ;;
+esac

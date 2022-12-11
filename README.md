@@ -11,5 +11,5 @@ A summary of the differences:
     $ docker compose -f docker-compose.test.yml -p zero2prod up -d
     $ sqlx database reset -y
     ```
-  - **§3.9**: `axum::State` is used as type safe replacement of `axum::Extension` and `?` operator is used to handle errors.
-
+  - **§3.9**: `axum::State` is used as type safe replacement of `axum::Extension` and `?` operator is used to handle errors;
+  - **§4.5**: traces are collected using [Grafana Tempo](https://grafana.com/oss/tempo/) and they can be inspected using [Grafana](https://grafana.com/) at the address `http://localhost:3000`.

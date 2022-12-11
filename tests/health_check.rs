@@ -1,7 +1,9 @@
 use std::net::TcpListener;
 
 use hyper::{header, Request};
+use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
+use tracing::Level;
 use uuid::Uuid;
 use zero2prod::settings::DatabaseSettings;
 
@@ -75,6 +77,8 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 }
 
 async fn spawn_app() -> TestApp {
+    Lazy::force(&TRACING);
+
     let listener = TcpListener::bind("127.0.0.1:0").expect("failed to bind random port");
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
@@ -109,6 +113,28 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
 
     db_pool
 }
+
+static TRACING: Lazy<()> = Lazy::new(|| {
+    use zero2prod::trace::*;
+
+    let subscriber = if std::env::var("TEST_LOG").is_ok() {
+        get_subscriber(TraceSettings {
+            level: Level::DEBUG,
+            writer: stdout(),
+            endpoint: None,
+            namespace: None,
+        })
+    } else {
+        get_subscriber(TraceSettings {
+            level: Level::DEBUG,
+            writer: std::io::sink,
+            endpoint: None,
+            namespace: None,
+        })
+    };
+
+    init_subscriber(subscriber);
+});
 
 struct TestApp {
     address: String,
