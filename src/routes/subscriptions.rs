@@ -3,7 +3,6 @@ use chrono::Utc;
 use hyper::StatusCode;
 use serde::Deserialize;
 use sqlx::PgPool;
-use unicode_segmentation::UnicodeSegmentation;
 use uuid::Uuid;
 
 #[tracing::instrument(
@@ -19,10 +18,6 @@ pub async fn subscribe(
     State(db_pool): State<PgPool>,
     Form(form): Form<FormData>,
 ) -> Result<(), StatusCode> {
-    if !is_valid_name(&form.name) {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
     insert_subscriber(&db_pool, &form)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -55,14 +50,4 @@ async fn insert_subscriber(db_pool: &PgPool, form: &FormData) -> sqlx::Result<()
 pub struct FormData {
     email: String,
     name: String,
-}
-
-fn is_valid_name(name: &str) -> bool {
-    const FORBIDDEN_CHARACTERS: [char; 9] = ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
-
-    let is_empty_or_whitespace = name.trim().is_empty();
-    let is_too_long = name.graphemes(true).count() > 256;
-    let contains_forbidden_characters = name.chars().any(|c| FORBIDDEN_CHARACTERS.contains(&c));
-
-    !(is_empty_or_whitespace || is_too_long || contains_forbidden_characters)
 }
