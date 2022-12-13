@@ -76,6 +76,35 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     }
 }
 
+#[tokio::test]
+async fn subscribe_returns_a_200_when_fields_are_present_but_empty() {
+    let app = spawn_app().await;
+    let client = hyper::Client::new();
+    let test_cases = vec![
+        ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
+        ("name=Ursula&email=", "empty email"),
+        ("name=Ursula&email=definitely-not-an-email", "invalid email"),
+    ];
+
+    for (body, description) in test_cases {
+        let request = Request::post(format!("{}/subscriptions", app.address))
+            .header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
+            .body(body.into())
+            .unwrap();
+        let response = client
+            .request(request)
+            .await
+            .expect("failed to execute request");
+
+        assert_eq!(
+            200,
+            response.status(),
+            "the API did not return 200 when payload was {}",
+            description,
+        );
+    }
+}
+
 async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
 
