@@ -5,6 +5,8 @@ use serde::Deserialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::domain::{NewSubscriber, SubscriberName};
+
 #[tracing::instrument(
     level = "info",
     name = "adding a new subscriber",
@@ -18,7 +20,12 @@ pub async fn subscribe(
     State(db_pool): State<PgPool>,
     Form(form): Form<FormData>,
 ) -> Result<(), StatusCode> {
-    insert_subscriber(&db_pool, &form)
+    let new_subscriber = NewSubscriber {
+        email: form.email,
+        name: SubscriberName::parse(form.name),
+    };
+
+    insert_subscriber(&db_pool, &new_subscriber)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(())
@@ -27,14 +34,14 @@ pub async fn subscribe(
 #[tracing::instrument(
     level = "info",
     name = "saving new subscriber details in the database",
-    skip(db_pool, form)
+    skip(db_pool, new_subscriber)
 )]
-async fn insert_subscriber(db_pool: &PgPool, form: &FormData) -> sqlx::Result<()> {
+async fn insert_subscriber(db_pool: &PgPool, new_subscriber: &NewSubscriber) -> sqlx::Result<()> {
     sqlx::query!(
         "INSERT INTO subscriptions (id, email, name, subscribed_at) VALUES ($1, $2, $3, $4)",
         Uuid::new_v4(),
-        form.email,
-        form.name,
+        new_subscriber.email,
+        new_subscriber.name.as_ref(),
         Utc::now(),
     )
     .execute(db_pool)

@@ -22,3 +22,9 @@ impl SubscriberName {
         }
     }
 }
+
+impl AsRef<str> for SubscriberName {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
