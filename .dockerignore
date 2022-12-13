@@ -1,0 +1,9 @@
+.dockerignore
+.env
+Dockerfile
+spec.yaml
+deploy/
+env/
+scripts/
+target/
+tests/

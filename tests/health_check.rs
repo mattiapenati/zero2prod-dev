@@ -83,7 +83,8 @@ async fn spawn_app() -> TestApp {
     let port = listener.local_addr().unwrap().port();
     let address = format!("http://127.0.0.1:{}", port);
 
-    let mut settings = zero2prod::Settings::load().expect("failed to load configuration");
+    let filename = Some("./tests/configuration.toml");
+    let mut settings = zero2prod::Settings::load(filename).expect("failed to load configuration");
     settings.database.db_name = Uuid::new_v4().to_string();
 
     let db_pool = configure_database(&settings.database).await;

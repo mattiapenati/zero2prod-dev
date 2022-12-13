@@ -1,11 +1,13 @@
+address = "0.0.0.0"
 port = 8000
 
 [log]
 level = "trace"
-endpoint = "http://localhost:4317"
+endpoint = "http://grafana-tempo:4317"
 
 [database]
-host = "localhost"
+host = "postgres-db"
 username = "postgres"
 password = "password"
 db_name = "newsletter"
+migrate = true

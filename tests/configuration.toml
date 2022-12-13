@@ -1,0 +1,8 @@
+[log]
+level = "trace"
+
+[database]
+host = "localhost"
+username = "postgres"
+password = "password"
+db_name = "newsletter"

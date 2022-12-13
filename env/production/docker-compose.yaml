@@ -1,0 +1,45 @@
+version: "3.9"
+services:
+  postgres-db:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=newsletter
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "newsletter"]
+      start_period: 5s
+      interval: 5s
+  prometheus:
+    image: prom/prometheus:v2.40.6
+    command:
+      - --config.file=/etc/prometheus.yaml
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus.yaml
+  grafana-tempo:
+    image: grafana/tempo
+    command: ["-config.file=/etc/tempo.yaml", "-log.level=debug"]
+    volumes:
+      - ./grafana-tempo.yaml:/etc/tempo.yaml
+  grafana:
+    image: grafana/grafana:9.3.1
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+  zero2prod:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: zero2prod
+    command: ["-f", "/etc/zero2prod.toml"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./zero2prod.toml:/etc/zero2prod.toml
+    depends_on:
+      - postgres-db

@@ -9,6 +9,7 @@ edition = "2021"
 axum = "0.6.1"
 axum-macros = "0.3.0"
 chrono = { version = "0.4.23", default-features = false, features = ["serde"] }
+clap = { version = "4.0.29", default-features = false, features = ["derive", "std", "help"] }
 config = { version = "0.13.3", default-features = false, features = ["toml"] }
 futures = { version = "0.3.25", default-features = false, features = ["std"] }
 hyper = { version = "0.14.23", features = ["server"] }
@@ -18,7 +19,7 @@ opentelemetry-otlp = "0.11.0"
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.149", features = ["derive"] }
 serde_with = "2.1.0"
-sqlx = { version = "0.6.2", features = ["postgres", "uuid", "chrono", "runtime-tokio-rustls"] }
+sqlx = { version = "0.6.2", features = ["postgres", "uuid", "chrono", "runtime-tokio-rustls", "offline"] }
 tokio = { version = "1.23.0", features = ["macros", "rt-multi-thread"] }
 tower = "0.4.13"
 tower-http = { version = "0.3.5", features = ["trace", "request-id", "util"] }
