@@ -236,6 +236,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "claym"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2b2410286133ba33573125961a0749fdbee5b2d25cc54fb9335e5a4f9feaa42"
+
+[[package]]
 name = "codespan-reporting"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2457,6 +2463,7 @@ dependencies = [
  "axum-macros",
  "chrono",
  "clap",
+ "claym",
  "config",
  "futures",
  "hyper",

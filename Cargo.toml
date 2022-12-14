@@ -33,4 +33,5 @@ unicode-segmentation = "1.10.0"
 uuid = { version = "1.2.2", features = ["v4"] }
 
 [dev-dependencies]
+claym = "0.4.0"
 hyper = { version = "0.14.23", features = ["client"] }

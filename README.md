@@ -13,4 +13,5 @@ A summary of the differences:
     ```
   - **§3.9**: `axum::State` is used as type safe replacement of `axum::Extension` and `?` operator is used to handle errors;
   - **§4.5**: traces are collected using [Grafana Tempo](https://grafana.com/oss/tempo/) and they can be inspected using [Grafana](https://grafana.com/) at the address `http://localhost:3000`;
-  - **§5.3**: hierarchical configuration is not implemented, configuration can be customized using environment variables; database migrations can be executed on service startup.
+  - **§5.3**: hierarchical configuration is not implemented, configuration can be customized using environment variables; database migrations can be executed on service startup;
+  - **§6.8**: unmaintained project [claim](https://crates.io/crates/claim) is replaced with [claym](https://crates.io/crates/claym).
