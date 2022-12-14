@@ -77,7 +77,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 }
 
 #[tokio::test]
-async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
+async fn subscribe_returns_a_422_when_fields_are_present_but_invalid() {
     let app = spawn_app().await;
     let client = hyper::Client::new();
     let test_cases = vec![
@@ -97,9 +97,9 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_invalid() {
             .expect("failed to execute request");
 
         assert_eq!(
-            400,
+            422,
             response.status(),
-            "the API did not return 400 Bad Request when payload was {}",
+            "the API did not return 422 Unprocessable Entity when payload was {}",
             description,
         );
     }
