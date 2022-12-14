@@ -22,7 +22,7 @@ pub async fn subscribe(
 ) -> Result<(), StatusCode> {
     let new_subscriber = NewSubscriber {
         email: form.email,
-        name: SubscriberName::parse(form.name),
+        name: SubscriberName::parse(form.name).expect("name validation failed"),
     };
 
     insert_subscriber(&db_pool, &new_subscriber)
