@@ -5,7 +5,7 @@ use serde::Deserialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{NewSubscriber, SubscriberName};
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 
 #[tracing::instrument(
     level = "info",
@@ -20,11 +20,9 @@ pub async fn subscribe(
     State(db_pool): State<PgPool>,
     Form(form): Form<FormData>,
 ) -> Result<(), StatusCode> {
-    let name = SubscriberName::parse(form.name).map_err(|_| StatusCode::UNPROCESSABLE_ENTITY)?;
-    let new_subscriber = NewSubscriber {
-        email: form.email,
-        name,
-    };
+    let new_subscriber = form
+        .try_into()
+        .map_err(|_| StatusCode::UNPROCESSABLE_ENTITY)?;
 
     insert_subscriber(&db_pool, &new_subscriber)
         .await
@@ -41,7 +39,7 @@ async fn insert_subscriber(db_pool: &PgPool, new_subscriber: &NewSubscriber) -> 
     sqlx::query!(
         "INSERT INTO subscriptions (id, email, name, subscribed_at) VALUES ($1, $2, $3, $4)",
         Uuid::new_v4(),
-        new_subscriber.email,
+        new_subscriber.email.as_ref(),
         new_subscriber.name.as_ref(),
         Utc::now(),
     )
@@ -58,4 +56,14 @@ async fn insert_subscriber(db_pool: &PgPool, new_subscriber: &NewSubscriber) -> 
 pub struct FormData {
     email: String,
     name: String,
+}
+
+impl TryFrom<FormData> for NewSubscriber {
+    type Error = String;
+
+    fn try_from(value: FormData) -> Result<Self, Self::Error> {
+        let name = SubscriberName::parse(value.name)?;
+        let email = SubscriberEmail::parse(value.email)?;
+        Ok(Self { name, email })
+    }
 }

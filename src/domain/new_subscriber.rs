@@ -1,6 +1,6 @@
-use super::SubscriberName;
+use super::{SubscriberEmail, SubscriberName};
 
 pub struct NewSubscriber {
-    pub email: String,
+    pub email: SubscriberEmail,
     pub name: SubscriberName,
 }
