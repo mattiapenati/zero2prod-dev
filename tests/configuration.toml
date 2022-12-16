@@ -6,3 +6,9 @@ host = "localhost"
 username = "postgres"
 password = "password"
 db_name = "newsletter"
+
+[email_client]
+base_url = "localhost"
+sender_email = "test@gmail.com"
+authorization_token = "my-secret-token"
+timeout = "100ms"

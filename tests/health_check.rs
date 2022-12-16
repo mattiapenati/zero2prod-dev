@@ -5,7 +5,7 @@ use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tracing::Level;
 use uuid::Uuid;
-use zero2prod::settings::DatabaseSettings;
+use zero2prod::{email_client::EmailClient, settings::DatabaseSettings};
 
 #[tokio::test]
 async fn health_check_works() {
@@ -118,7 +118,19 @@ async fn spawn_app() -> TestApp {
 
     let db_pool = configure_database(&settings.database).await;
 
-    let server = zero2prod::app::run(listener, db_pool.clone()).expect("failed to bind address");
+    let sender_email = settings
+        .email_client
+        .sender()
+        .expect("invalid sender email address");
+    let email_client = EmailClient::new(
+        settings.email_client.base_url,
+        sender_email,
+        settings.email_client.authorization_token,
+        settings.email_client.timeout,
+    );
+
+    let server = zero2prod::app::run(listener, db_pool.clone(), email_client)
+        .expect("failed to bind address");
     let _ = tokio::spawn(server);
 
     TestApp { address, db_pool }

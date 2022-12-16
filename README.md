@@ -15,4 +15,5 @@ A summary of the differences:
   - **§4.5**: traces are collected using [Grafana Tempo](https://grafana.com/oss/tempo/) and they can be inspected using [Grafana](https://grafana.com/) at the address `http://localhost:3000`;
   - **§5.3**: hierarchical configuration is not implemented, configuration can be customized using environment variables; database migrations can be executed on service startup;
   - **§6.8**: unmaintained project [claim](https://crates.io/crates/claim) is replaced with [claym](https://crates.io/crates/claym);
-  - **§6.10**: error 422 Unprocessable Entity is used to notify a syntatically correct request, but semantically erroneous.
+  - **§6.10**: error 422 Unprocessable Entity is used to notify a syntatically correct request, but semantically erroneous;
+  - **§7.2**: [hyper](https://crates.io/crates/hyper) is used as HTTP client, HTTP client timeout can be configured using [humantime](https://crates.io/crates/humantime).
