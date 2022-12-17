@@ -37,7 +37,8 @@ pub async fn subscribe(
 )]
 async fn insert_subscriber(db_pool: &PgPool, new_subscriber: &NewSubscriber) -> sqlx::Result<()> {
     sqlx::query!(
-        "INSERT INTO subscriptions (id, email, name, subscribed_at) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO subscriptions (id, email, name, subscribed_at, status)
+        VALUES ($1, $2, $3, $4, 'confirmed')",
         Uuid::new_v4(),
         new_subscriber.email.as_ref(),
         new_subscriber.name.as_ref(),
