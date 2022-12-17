@@ -1,4 +1,4 @@
-pub use self::settings::Settings;
+pub use self::{app::Application, settings::Settings};
 
 pub mod app;
 pub mod domain;
