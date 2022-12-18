@@ -1,4 +1,5 @@
 use std::{
+    fmt::{self, Display},
     future::Future,
     net::{SocketAddr, TcpListener},
     pin::Pin,
@@ -43,7 +44,7 @@ impl Application {
         tracing::info!("serving on {}", address);
 
         let port = address.port();
-        let server = run(listener, db_pool, email_client)?;
+        let server = run(listener, db_pool, email_client, settings.base_url)?;
         Ok(Application { port, server })
     }
 
@@ -70,10 +71,12 @@ pub fn run(
     listener: TcpListener,
     db_pool: PgPool,
     email_client: EmailClient,
+    base_url: String,
 ) -> hyper::Result<Server> {
     let state = AppState {
         db_pool,
         email_client,
+        base_url: BaseUrl(base_url),
     };
     let middleware = ServiceBuilder::new()
         .set_x_request_id(MakeRequestUuid)
@@ -87,6 +90,7 @@ pub fn run(
         Router::new()
             .route("/health_check", routing::get(routes::health_check))
             .route("/subscriptions", routing::post(routes::subscribe))
+            .route("/subscriptions/confirm", routing::get(routes::confirm))
             .layer(middleware)
             .with_state(state)
             .into_make_service_with_connect_info::<SocketAddr>(),
@@ -94,8 +98,18 @@ pub fn run(
     Ok(Box::pin(server))
 }
 
+#[derive(Clone, Debug)]
+pub struct BaseUrl(String);
+
+impl Display for BaseUrl {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+
 #[derive(Clone, FromRef)]
 struct AppState {
     db_pool: PgPool,
     email_client: EmailClient,
+    base_url: BaseUrl,
 }

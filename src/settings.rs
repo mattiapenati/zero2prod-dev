@@ -12,6 +12,7 @@ use crate::domain::SubscriberEmail;
 pub struct Settings {
     pub address: IpAddr,
     pub port: u16,
+    pub base_url: String,
     pub log: LogSettings,
     pub database: DatabaseSettings,
     pub email_client: EmailClientSettings,
@@ -50,6 +51,7 @@ impl Settings {
         let mut config = Config::builder()
             .set_default("address", "127.0.0.1")?
             .set_default("port", "8000")?
+            .set_default("base_url", "http://127.0.0.1")?
             .set_default("log.level", "info")?
             .set_default("database.host", "localhost")?
             .set_default("database.port", "5432")?

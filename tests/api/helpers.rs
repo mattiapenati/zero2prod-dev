@@ -1,8 +1,9 @@
-use http::{header, Request, Response};
+use http::{header, Request, Response, Uri};
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tracing::Level;
 use uuid::Uuid;
+use wiremock::MockServer;
 use zero2prod::settings::DatabaseSettings;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -30,6 +31,12 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
+    pub email_server: MockServer,
+}
+
+pub struct ConfirmationLinks {
+    pub html: Uri,
+    pub text: Uri,
 }
 
 impl TestApp {
@@ -44,10 +51,39 @@ impl TestApp {
             .await
             .expect("failed to execute request")
     }
+
+    pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
+        let body = serde_json::from_slice::<serde_json::Value>(&email_request.body).unwrap();
+
+        let get_link = |s: &str| {
+            let links: Vec<_> = linkify::LinkFinder::new()
+                .links(s)
+                .filter(|l| *l.kind() == linkify::LinkKind::Url)
+                .collect();
+
+            assert_eq!(links.len(), 1);
+
+            let confirmation_link = links[0].as_str().parse::<Uri>().unwrap();
+            format!(
+                "{}{}",
+                self.address,
+                confirmation_link.path_and_query().unwrap()
+            )
+            .parse::<Uri>()
+            .unwrap()
+        };
+
+        let html = get_link(&body["HtmlBody"].as_str().unwrap());
+        let text = get_link(&body["TextBody"].as_str().unwrap());
+
+        ConfirmationLinks { html, text }
+    }
 }
 
 pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
+
+    let email_server = MockServer::start().await;
 
     let settings = {
         let filename = Some("./tests/configuration.toml");
@@ -56,7 +92,9 @@ pub async fn spawn_app() -> TestApp {
 
         settings.address = "127.0.0.1".parse().unwrap();
         settings.port = 0;
+        settings.base_url = "http://127.0.0.1".to_string();
         settings.database.db_name = Uuid::new_v4().to_string();
+        settings.email_client.base_url = email_server.uri();
         settings
     };
 
@@ -68,7 +106,11 @@ pub async fn spawn_app() -> TestApp {
     let address = format!("http://127.0.0.1:{}", port);
     let _ = tokio::spawn(server);
 
-    TestApp { address, db_pool }
+    TestApp {
+        address,
+        db_pool,
+        email_server,
+    }
 }
 
 async fn configure_database(config: &DatabaseSettings) {
