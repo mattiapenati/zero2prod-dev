@@ -1,4 +1,4 @@
-use http::{header, Request};
+use http::Request;
 use serde_json::json;
 use wiremock::{
     matchers::{any, method, path},
@@ -18,7 +18,6 @@ async fn newsletters_are_not_delivered_to_uncontfirmed_subscribers() {
         .mount(&app.email_server)
         .await;
 
-    let client = hyper::Client::new();
     let newsletter_request_body = json!({
         "title": "Newsletter title",
         "content": {
@@ -26,18 +25,7 @@ async fn newsletters_are_not_delivered_to_uncontfirmed_subscribers() {
             "html": "<p>Newsletter body as HTML</p>",
         }
     });
-    let request = Request::post(format!("{}/newsletters", &app.address))
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(
-            serde_json::to_string(&newsletter_request_body)
-                .unwrap()
-                .into(),
-        )
-        .expect("failed to build request for sending newsletter");
-    let response = client
-        .request(request)
-        .await
-        .expect("failed to execute request");
+    let response = app.post_newsletters(newsletter_request_body).await;
 
     assert_eq!(200, response.status());
 }
@@ -54,7 +42,6 @@ async fn newsletters_are_delivered_to_contfirmed_subscribers() {
         .mount(&app.email_server)
         .await;
 
-    let client = hyper::Client::new();
     let newsletter_request_body = json!({
         "title": "Newsletter title",
         "content": {
@@ -62,20 +49,38 @@ async fn newsletters_are_delivered_to_contfirmed_subscribers() {
             "html": "<p>Newsletter body as HTML</p>",
         }
     });
-    let request = Request::post(format!("{}/newsletters", &app.address))
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(
-            serde_json::to_string(&newsletter_request_body)
-                .unwrap()
-                .into(),
-        )
-        .expect("failed to build request for sending newsletter");
-    let response = client
-        .request(request)
-        .await
-        .expect("failed to execute request");
+    let response = app.post_newsletters(newsletter_request_body).await;
 
     assert_eq!(200, response.status());
+}
+
+#[tokio::test]
+async fn newsletters_returns_422_for_invalid_data() {
+    let app = spawn_app().await;
+
+    let test_cases = [
+        (
+            json!({
+                "content": {
+                    "text": "Newsletter body as plain text",
+                    "html": "<p>Newsletter body as HTML</p>",
+                }
+            }),
+            "missing title",
+        ),
+        (json!({"title": "Newsletter!"}), "missing content"),
+    ];
+
+    for (invalid_body, error_message) in test_cases {
+        let response = app.post_newsletters(invalid_body).await;
+
+        assert_eq!(
+            422,
+            response.status(),
+            "the API did not fail with 422 Unprocessable Entity when payload was {}",
+            error_message
+        );
+    }
 }
 
 async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {

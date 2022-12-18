@@ -52,6 +52,18 @@ impl TestApp {
             .expect("failed to execute request")
     }
 
+    pub async fn post_newsletters(&self, body: serde_json::Value) -> Response<hyper::Body> {
+        let client = hyper::Client::new();
+        let request = Request::post(format!("{}/newsletters", self.address))
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(serde_json::to_string(&body).unwrap().into())
+            .unwrap();
+        client
+            .request(request)
+            .await
+            .expect("failed to execute request")
+    }
+
     pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
         let body = serde_json::from_slice::<serde_json::Value>(&email_request.body).unwrap();
 
