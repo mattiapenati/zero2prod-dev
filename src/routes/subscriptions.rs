@@ -1,4 +1,13 @@
-use axum::{extract::State, Form};
+use std::{
+    error::Error as StdError,
+    fmt::{self, Debug, Display},
+};
+
+use axum::{
+    extract::State,
+    response::{IntoResponse, Response},
+    Form,
+};
 use chrono::Utc;
 use hyper::StatusCode;
 use rand::{distributions::Alphanumeric, Rng};
@@ -122,7 +131,7 @@ async fn store_token<'c, E>(
     executor: E,
     subscriber_id: Uuid,
     subscription_token: &str,
-) -> sqlx::Result<()>
+) -> Result<(), StoreTokenError>
 where
     E: PgExecutor<'c>,
 {
@@ -163,4 +172,44 @@ impl TryFrom<FormData> for NewSubscriber {
         let email = SubscriberEmail::parse(value.email)?;
         Ok(Self { name, email })
     }
+}
+
+#[derive(Debug)]
+pub struct StoreTokenError(sqlx::Error);
+
+impl From<sqlx::Error> for StoreTokenError {
+    fn from(err: sqlx::Error) -> Self {
+        StoreTokenError(err)
+    }
+}
+
+impl Display for StoreTokenError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+impl StdError for StoreTokenError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        Some(&self.0)
+    }
+}
+
+impl IntoResponse for StoreTokenError {
+    fn into_response(self) -> Response {
+        let mut response = StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        let body = axum::body::boxed(self.to_string());
+        *response.body_mut() = axum::body::boxed(body);
+        response
+    }
+}
+
+fn error_chain_fmt(err: &impl StdError, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    writeln!(f, "{}\n", err)?;
+    let mut current = err.source();
+    while let Some(source) = current {
+        writeln!(f, "caused by:\n\t{}", source)?;
+        current = source.source();
+    }
+    Ok(())
 }
