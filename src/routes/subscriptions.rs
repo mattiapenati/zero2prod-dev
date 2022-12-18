@@ -1,8 +1,3 @@
-use std::{
-    error::Error as StdError,
-    fmt::{self, Debug, Write},
-};
-
 use anyhow::Context;
 use axum::{
     extract::State,
@@ -192,19 +187,8 @@ impl IntoResponse for SubscribeError {
         };
 
         let mut response = status.into_response();
-        let body = axum::body::boxed(error_chain_msg(&self).unwrap());
+        let body = axum::body::boxed(super::error_chain_msg(&self).unwrap());
         *response.body_mut() = axum::body::boxed(body);
         response
     }
-}
-
-fn error_chain_msg(err: &impl StdError) -> Result<String, fmt::Error> {
-    let mut msg = String::new();
-    writeln!(msg, "{}\n", err)?;
-    let mut current = err.source();
-    while let Some(source) = current {
-        writeln!(msg, "caused by:\n\t{}", source)?;
-        current = source.source();
-    }
-    Ok(msg)
 }
