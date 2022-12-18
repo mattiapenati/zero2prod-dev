@@ -91,6 +91,7 @@ pub fn run(
             .route("/health_check", routing::get(routes::health_check))
             .route("/subscriptions", routing::post(routes::subscribe))
             .route("/subscriptions/confirm", routing::get(routes::confirm))
+            .route("/newsletters", routing::post(routes::publish_newsletter))
             .layer(middleware)
             .with_state(state)
             .into_make_service_with_connect_info::<SocketAddr>(),
