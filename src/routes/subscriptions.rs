@@ -3,6 +3,7 @@ use std::{
     fmt::{self, Debug, Write},
 };
 
+use anyhow::Context;
 use axum::{
     extract::State,
     response::{IntoResponse, Response},
@@ -38,20 +39,23 @@ pub async fn subscribe(
 ) -> Result<(), SubscribeError> {
     let new_subscriber = form.try_into().map_err(SubscribeError::ValidationError)?;
 
-    let mut transaction = db_pool.begin().await.map_err(SubscribeError::PoolError)?;
+    let mut transaction = db_pool
+        .begin()
+        .await
+        .context("failed to acquire a Postgres connection from the pool")?;
 
     let subscriber_id = insert_subscriber(&mut transaction, &new_subscriber)
         .await
-        .map_err(SubscribeError::InsertSubscriberError)?;
+        .context("failed to insert new subscriber in the database")?;
     let subscription_token = generate_subscription_token();
     store_token(&mut transaction, subscriber_id, &subscription_token)
         .await
-        .map_err(SubscribeError::StoreTokenError)?;
+        .context("failed to store the confirmation token for a new subscriber")?;
 
     transaction
         .commit()
         .await
-        .map_err(SubscribeError::TransactionCommitError)?;
+        .context("failed to commit SQL transaction to store a new subscriber")?;
 
     send_confirmation_email(&email_client, new_subscriber, base_url, &subscription_token)
         .await
@@ -173,14 +177,8 @@ impl TryFrom<FormData> for NewSubscriber {
 pub enum SubscribeError {
     #[error("{0}")]
     ValidationError(String),
-    #[error("failed to aquire a Postgres connection from the pool")]
-    PoolError(#[source] sqlx::Error),
-    #[error("failed to insert new subscriber in the database")]
-    InsertSubscriberError(#[source] sqlx::Error),
-    #[error("failed to store the confirmation token for a new subscriber")]
-    StoreTokenError(#[source] sqlx::Error),
-    #[error("failed to commit SQL transaction to store a new subscriber")]
-    TransactionCommitError(#[source] sqlx::Error),
+    #[error(transparent)]
+    UnexpectedError(#[from] anyhow::Error),
     #[error("failed to send a confirmation email: {0}")]
     SendEmailError(String),
 }
@@ -189,6 +187,7 @@ impl IntoResponse for SubscribeError {
     fn into_response(self) -> Response {
         let status = match self {
             Self::ValidationError(_) => StatusCode::UNPROCESSABLE_ENTITY,
+            Self::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
 

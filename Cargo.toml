@@ -6,6 +6,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.68"
 axum = "0.6.1"
 axum-macros = "0.3.0"
 chrono = { version = "0.4.23", default-features = false, features = ["serde"] }
