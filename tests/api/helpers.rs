@@ -1,3 +1,4 @@
+use argon2::{password_hash::SaltString, Algorithm, Argon2, Params, PasswordHasher, Version};
 use http::{header, Request, Response, Uri};
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -32,6 +33,7 @@ pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
     pub email_server: MockServer,
+    pub test_user: TestUser,
 }
 
 pub struct ConfirmationLinks {
@@ -56,6 +58,16 @@ impl TestApp {
         let client = hyper::Client::new();
         let request = Request::post(format!("{}/newsletters", self.address))
             .header(header::CONTENT_TYPE, "application/json")
+            .header(
+                header::AUTHORIZATION,
+                format!(
+                    "Basic {}",
+                    base64::encode(format!(
+                        "{}:{}",
+                        self.test_user.username, self.test_user.password
+                    )),
+                ),
+            )
             .body(serde_json::to_string(&body).unwrap().into())
             .unwrap();
         client
@@ -118,10 +130,14 @@ pub async fn spawn_app() -> TestApp {
     let address = format!("http://127.0.0.1:{}", port);
     let _ = tokio::spawn(server);
 
+    let test_user = TestUser::generate();
+    test_user.store(&db_pool).await;
+
     TestApp {
         address,
         db_pool,
         email_server,
+        test_user,
     }
 }
 
@@ -141,4 +157,41 @@ async fn configure_database(config: &DatabaseSettings) {
         .run(&db_pool)
         .await
         .expect("failed to migrate the database");
+}
+
+pub struct TestUser {
+    pub user_id: Uuid,
+    pub username: String,
+    pub password: String,
+}
+
+impl TestUser {
+    pub fn generate() -> Self {
+        TestUser {
+            user_id: Uuid::new_v4(),
+            username: Uuid::new_v4().to_string(),
+            password: Uuid::new_v4().to_string(),
+        }
+    }
+
+    async fn store(&self, db_pool: &PgPool) {
+        let salt = SaltString::generate(&mut rand::thread_rng());
+        let password_hash = Argon2::new(
+            Algorithm::Argon2id,
+            Version::V0x13,
+            Params::new(15_000, 2, 1, None).unwrap(),
+        )
+        .hash_password(self.password.as_bytes(), &salt)
+        .unwrap()
+        .to_string();
+        sqlx::query!(
+            "INSERT INTO users(user_id, username, password_hash) VALUES ($1, $2, $3)",
+            self.user_id,
+            self.username,
+            password_hash,
+        )
+        .execute(db_pool)
+        .await
+        .expect("failed to create test users");
+    }
 }

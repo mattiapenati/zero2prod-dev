@@ -1,6 +1,32 @@
 {
   "db": "PostgreSQL",
-  "3365f86a1369bc5fa98378781d0a63ba67007de4428f15ab6a3c13aa8051cfc6": {
+  "2259c02181c47bc4b616b73d3030da1b7152973fed21143595ddb321ff98cf2f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT user_id, password_hash FROM users where username = $1"
+  },
+  "2c0785c56cbdbc0b11c09b694b1896d5d746f7e195155eba56498be6673cf345": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -13,6 +39,69 @@
         ]
       }
     },
-    "query": "INSERT INTO subscriptions (id, email, name, subscribed_at) VALUES ($1, $2, $3, $4)"
+    "query": "INSERT INTO subscriptions (id, email, name, subscribed_at, status)\n        VALUES ($1, $2, $3, $4, 'pending_confirmation')"
+  },
+  "6e9d46086a754bf3c66e8b9a4403e8d1a3ab1f2d58632625f4a08f41b60b8849": {
+    "describe": {
+      "columns": [
+        {
+          "name": "subscriber_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT subscriber_id FROM subscription_tokens\n            WHERE subscription_token = $1"
+  },
+  "92d1430cbd64c1424560b061cb2cb395369617b1e72bc6e86e7f1cd987748491": {
+    "describe": {
+      "columns": [
+        {
+          "name": "email",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT email FROM subscriptions WHERE status = 'confirmed'"
+  },
+  "9ca563dbb06bcd0041ceff538c654dec2441ea0959fa67d4d7bcfeffad442654": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "INSERT INTO subscription_tokens (subscription_token, subscriber_id)\n        VALUES ($1, $2)"
+  },
+  "a71a1932b894572106460ca2e34a63dc0cb8c1ba7a70547add1cddbb68133c2b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "UPDATE subscriptions SET status = 'confirmed' WHERE id = $1"
   }
 }

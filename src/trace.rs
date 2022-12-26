@@ -11,6 +11,7 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
+use tokio::task::JoinHandle;
 use tracing::{field::Empty, subscriber::set_global_default, Level, Subscriber};
 use tracing_appender::non_blocking::{NonBlocking, WorkerGuard};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
@@ -136,4 +137,13 @@ impl<B> tower_http::trace::OnResponse<B> for OnResponse {
     ) {
         span.record("http.status_code", response.status().as_u16());
     }
+}
+
+pub fn spawn_blocking_with_tracing<F, R>(f: F) -> JoinHandle<R>
+where
+    F: FnOnce() -> R + Send + 'static,
+    R: Send + 'static,
+{
+    let current_span = tracing::Span::current();
+    tokio::task::spawn_blocking(move || current_span.in_scope(f))
 }
